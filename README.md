@@ -1,2 +1,7 @@
-# Hiac-Security-AI
-"Ciberseguridad &amp; IA Protegiendo a los mas vulnerables protegiendo a niños y personas adultas de fraudes &amp; phishing en linea"
+# Hiac Security AI
+Ciberseguridad & IA ; Protegiendo a niños y personas vulnerables al phishing & Fraude Bancarios
+Analizar enlaces y mensajes sospechosos y explicar el riesgo de los juegos en linea & el buen uso de internet
+MVP en desarrollo analizador de phishing ramsomware malware basado en linea de comandos
+pip install -r requirements.txt
+
+
