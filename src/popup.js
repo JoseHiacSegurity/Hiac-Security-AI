@@ -3,10 +3,11 @@ const score = document.querySelector("#score");
 const findings = document.querySelector("#findings");
 
 chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+  if (!tab?.id) { status.textContent = "No se pudo identificar la pestaña actual."; return; }
   chrome.storage.session.get(`tab:${tab.id}`, (data) => {
     const result = data[`tab:${tab.id}`];
-    if (!result) { status.textContent = "Sin resultado para esta página."; return; }
-    status.textContent = result.level === "danger" ? "Riesgo alto: verifica el sitio." : result.level === "warning" ? "Riesgo moderado: procede con cautela." : "No se detectaron señales importantes.";
+    if (!result) { status.textContent = "Sin resultado: esta página puede estar protegida o aún cargando."; return; }
+    status.textContent = result.level === "danger" ? "Riesgo alto: no introduzcas credenciales." : result.level === "warning" ? "Riesgo moderado: procede con cautela." : "No se detectaron señales importantes.";
     status.className = result.level;
     score.textContent = `Puntuación: ${result.score}/100`;
     result.findings.forEach((finding) => {
