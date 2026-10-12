@@ -11,6 +11,10 @@ PhishGuard es una capa de aviso local. No sustituye el filtrado DNS, la protecci
 - El único estado efímero por pestaña contiene una puntuación y mensajes de reglas; se elimina al cerrar la pestaña o terminar la sesión del navegador.
 - No se guarda la URL, la ruta, parámetros ni fragmentos.
 
+## Barrera de envío
+
+Si un formulario con contraseña alcanza riesgo alto, PhishGuard cancela el primer envío y solicita una confirmación explícita. La confirmación permite un único reenvío del mismo formulario. No se bloquean formularios de bajo o medio riesgo para reducir falsos positivos.
+
 ## Superficie y controles
 
 | Riesgo | Control |
@@ -21,17 +25,19 @@ PhishGuard es una capa de aviso local. No sustituye el filtrado DNS, la protecci
 | Privilegios excesivos | La extensión solicita únicamente storage; no usa permisos de red, historial, cookies, descargas ni acceso al portapapeles. |
 | Fuga de información | El motor es local, sin telemetría ni APIs de reputación. |
 | Evasión por contenido cargado tarde | Un observador detecta cambios relevantes en la página y vuelve a analizarla. |
+| Regresión de reglas | Las pruebas automatizadas se ejecutan en GitHub Actions en cada cambio. |
 
 ## Proceso de cambios
 
 1. No añadir dependencias remotas a la extensión.
 2. No usar eval, innerHTML con datos de página, ni cargar scripts desde una URL.
 3. Revisar cada permiso nuevo: debe tener una razón y constar en el README.
-4. Probar en una página propia con formulario HTTPS, un formulario HTTP y un formulario cuyo destino sea otro dominio.
-5. Antes de publicar, revisar manualmente chrome://extensions para confirmar los permisos declarados.
+4. Añadir una prueba de regresión por cada nueva regla o excepción.
+5. Probar en una página propia con formulario HTTPS, un formulario HTTP y un formulario cuyo destino sea otro dominio.
+6. Antes de publicar, revisar manualmente chrome://extensions para confirmar los permisos declarados.
 
 ## Mejoras futuras
 
 - Lista firmada de indicadores de compromiso, descargada solo con consentimiento explícito.
-- Pruebas automatizadas de reglas con casos benignos y maliciosos simulados.
+- Revisión independiente de reglas y pruebas de compatibilidad por navegador.
 - Integración empresarial opcional con SIEM, minimizando datos y con aprobación previa.
