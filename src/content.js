@@ -1,7 +1,10 @@
 /* global PhishGuardRules */
 (function startPhishGuard() {
+  const HIGH_RISK = 60;
   const BANNER_ID = "__phishguard_warning";
+  const allowedForms = new WeakSet();
   let lastFingerprint = "";
+  let lastResult = { score: 0, findings: [] };
   let queued = false;
 
   function pageFacts() {
@@ -24,7 +27,7 @@
   }
 
   function showWarning(result) {
-    if (result.score < 60 || document.getElementById(BANNER_ID)) return;
+    if (result.score < HIGH_RISK || document.getElementById(BANNER_ID)) return;
     const host = document.createElement("div");
     host.id = BANNER_ID;
     host.setAttribute("role", "alert");
@@ -45,6 +48,7 @@
     queued = false;
     if (!document.documentElement) return;
     const result = PhishGuardRules.inspectPage(pageFacts());
+    lastResult = result;
     const fingerprint = `${location.href}:${result.score}:${result.findings.map((item) => item.code).join(",")}`;
     if (fingerprint === lastFingerprint) return;
     lastFingerprint = fingerprint;
@@ -54,6 +58,23 @@
   function scheduleScan() {
     if (!queued) { queued = true; setTimeout(scan, 500); }
   }
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.querySelector('input[type="password"]') || allowedForms.has(form)) return;
+    lastResult = PhishGuardRules.inspectPage(pageFacts());
+    if (lastResult.score < HIGH_RISK) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const proceed = window.confirm("PhishGuard detectó señales de phishing de alto riesgo. Verifica el dominio. ¿Deseas enviar este formulario de todos modos?");
+    if (!proceed) return;
+    allowedForms.add(form);
+    queueMicrotask(() => {
+      try { form.requestSubmit(event.submitter || undefined); }
+      finally { setTimeout(() => allowedForms.delete(form), 0); }
+    });
+  }, true);
+
   scan();
   new MutationObserver(scheduleScan).observe(document.documentElement, { childList: true, subtree: true });
   addEventListener("popstate", scheduleScan, { passive: true });
