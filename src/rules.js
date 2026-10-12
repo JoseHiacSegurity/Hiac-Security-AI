@@ -49,21 +49,23 @@
     } catch { return null; }
   }
 
-  function inspectPage({ url, forms, hiddenIframes, loginLanguage, redirectCount }) {
+  function inspectPage({ url, forms = [], hiddenIframes = 0, loginLanguage = false, redirectCount = 0 }) {
     const findings = [];
     const parsed = safeUrl(url);
     if (!parsed) return { score: 0, findings };
     const host = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    const labels = host.split(".");
     const hasPasswordForm = forms.some((form) => form.hasPassword);
-    const suspiciousTld = host.split(".").at(-1);
+    const suspiciousTld = labels.at(-1);
     const officialBrand = trustedBrand(host);
 
-    if (parsed.protocol === "http:" && hasPasswordForm) add(findings, 45, "INSECURE_PASSWORD_FORM", "Formulario de contraseña en una página sin HTTPS.");
+    if (parsed.protocol === "http:" && hasPasswordForm) add(findings, 60, "INSECURE_PASSWORD_FORM", "Formulario de contraseña en una página sin HTTPS.");
     if (host.includes("xn--")) add(findings, 30, "PUNYCODE", "El dominio usa punycode; puede imitar visualmente caracteres.");
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) add(findings, 25, "IP_HOST", "La URL usa una dirección IP en lugar de un dominio.");
     if (parsed.username || /%40|@/i.test(url)) add(findings, 20, "URL_AT", "La URL contiene una arroba, una técnica para ocultar el destino.");
     if (/%[0-9a-f]{2}/i.test(parsed.pathname) && hasPasswordForm) add(findings, 10, "ENCODED_URL", "La URL codifica caracteres junto a un formulario de acceso.");
     if (SUSPICIOUS_TLDS.has(suspiciousTld) && hasPasswordForm) add(findings, 15, "SUSPICIOUS_TLD", "El sitio de acceso usa un dominio de alto riesgo histórico.");
+    if (hasPasswordForm && (host.length > 55 || labels.length >= 5)) add(findings, 15, "COMPLEX_HOST", "El acceso usa un dominio inusualmente largo o con demasiados subdominios.");
     const brand = lookalikeBrand(host);
     if (brand) add(findings, 45, "LOOKALIKE_DOMAIN", `El dominio se parece a la marca “${brand}”, pero no es un dominio oficial conocido.`);
     if (hiddenIframes > 0) add(findings, 15, "HIDDEN_IFRAME", "La página contiene iframe(s) oculto(s).");
@@ -74,10 +76,10 @@
       if (!form.action) { add(findings, 10, "EMPTY_ACTION", "El formulario de contraseña no declara un destino."); return; }
       const action = safeUrl(form.action, url);
       if (!action) { add(findings, 20, "MALFORMED_ACTION", "El formulario tiene un destino no HTTP válido."); return; }
-      if (action.hostname.toLowerCase() !== host) add(findings, 40, "CROSS_DOMAIN_LOGIN", "El formulario de contraseña envía datos a otro dominio.");
-      if (action.protocol !== "https:") add(findings, 30, "INSECURE_FORM_ACTION", "El formulario envía datos a un destino sin HTTPS.");
+      if (action.hostname.toLowerCase() !== host) add(findings, 55, "CROSS_DOMAIN_LOGIN", "El formulario de contraseña envía datos a otro dominio.");
+      if (action.protocol !== "https:") add(findings, 60, "INSECURE_FORM_ACTION", "El formulario envía datos a un destino sin HTTPS.");
     });
-    if (hasPasswordForm && loginLanguage && host.split(".").length > 3 && !officialBrand) add(findings, 10, "LOGIN_ON_DEEP_SUBDOMAIN", "Inicio de sesión en un subdominio inusual.");
+    if (hasPasswordForm && loginLanguage && labels.length > 3 && !officialBrand) add(findings, 10, "LOGIN_ON_DEEP_SUBDOMAIN", "Inicio de sesión en un subdominio inusual.");
     return { score: Math.min(100, findings.reduce((sum, item) => sum + item.points, 0)), findings };
   }
   window.PhishGuardRules = { inspectPage };
