@@ -7,10 +7,16 @@
   let lastResult = { score: 0, findings: [] };
   let queued = false;
 
+  function hasPasswordField(form) {
+    return Boolean(Element.prototype.querySelector.call(form, 'input[type="password"]'));
+  }
+  function formAction(form) {
+    return Element.prototype.getAttribute.call(form, "action") || "";
+  }
   function pageFacts() {
     const forms = Array.from(document.forms).slice(0, 30).map((form) => ({
-      hasPassword: Boolean(form.querySelector('input[type="password"]')),
-      action: form.getAttribute("action") || ""
+      hasPassword: hasPasswordField(form),
+      action: formAction(form)
     }));
     const hiddenIframes = Array.from(document.querySelectorAll("iframe")).slice(0, 50).filter((frame) => {
       const style = getComputedStyle(frame);
@@ -61,12 +67,12 @@
 
   document.addEventListener("submit", (event) => {
     const form = event.target;
-    if (!(form instanceof HTMLFormElement) || !form.querySelector('input[type="password"]') || allowedForms.has(form)) return;
+    if (!(form instanceof HTMLFormElement) || !hasPasswordField(form) || allowedForms.has(form)) return;
     lastResult = PhishGuardRules.inspectPage(pageFacts());
     if (lastResult.score < HIGH_RISK) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const proceed = window.confirm("PhishGuard detectó señales de phishing de alto riesgo. Verifica el dominio. ¿Deseas enviar este formulario de todos modos?");
+    const proceed = globalThis.confirm("PhishGuard detectó señales de phishing de alto riesgo. Verifica el dominio. ¿Deseas enviar este formulario de todos modos?");
     if (!proceed) return;
     allowedForms.add(form);
     queueMicrotask(() => {
