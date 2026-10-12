@@ -2,42 +2,54 @@
 
 Ciberseguridad e IA para proteger a niños y personas vulnerables frente al phishing y fraude bancario.
 
-## MVP: detección de phishing en tiempo real
+## Detección de phishing en tiempo real
 
-Este repositorio ahora incluye una extensión de Chrome (Manifest V3) que analiza localmente cada página cargada y advierte de señales de riesgo antes de que alguien entregue credenciales.
+PhishGuard es una extensión de Chrome (Manifest V3) que analiza localmente la página cargada y detiene el primer envío de un formulario de contraseña cuando detecta riesgo alto. La persona usuaria debe confirmar explícitamente si desea continuar.
 
-### Privacidad
+## Privacidad
 
 - No lee, registra ni transmite contraseñas o valores de formularios.
-- El análisis y la puntuación se realizan dentro del navegador.
+- No se guarda la URL, la ruta ni los parámetros: solo una puntuación temporal por pestaña.
+- El análisis y la puntuación se realizan dentro del navegador, sin telemetría ni APIs remotas.
 - Las reglas son explicables y auditables en `src/rules.js`.
 
-### Instalación local
+## Instalación local
 
 1. Clona o descarga el repositorio.
 2. En Chrome, abre `chrome://extensions`.
 3. Activa **Modo de desarrollador**.
 4. Selecciona **Cargar descomprimida** y elige esta carpeta.
-5. El icono muestra la puntuación para la pestaña actual. Ábrelo para revisar las señales.
+5. Recarga la extensión después de cada actualización. El icono muestra la puntuación para la pestaña actual.
 
-### Señales evaluadas
+## Señales evaluadas
 
-| Señal | Ejemplo |
+| Señal | Acción |
 | --- | --- |
-| Formulario de contraseña sin HTTPS | Página HTTP con campo password |
-| Dominio parecido a una marca | `micros0ft-ejemplo.com` |
-| URL engañosa | Punycode, IP directa o `@` |
-| Formulario que publica a otro dominio | Login con destino externo |
-| Técnicas de ocultación | iframe oculto |
+| Formulario de contraseña sin HTTPS | Riesgo alto; se exige confirmación antes de enviar |
+| Destino del formulario sin HTTPS | Riesgo alto; se exige confirmación antes de enviar |
+| Dominio parecido a una marca | Se marca y se combina con otras señales |
+| URL engañosa | Punycode, IP directa, `@`, ruta codificada |
+| Infraestructura sospechosa | TLD de riesgo, host largo o muchos subdominios |
+| Página evasiva | Iframe oculto o redirecciones múltiples |
 
-Una puntuación de 60 o más es de riesgo alto. Es una ayuda de seguridad y no sustituye verificar el dominio antes de iniciar sesión.
+Una puntuación de 60 o más es de riesgo alto. PhishGuard no sustituye verificar el dominio antes de iniciar sesión.
 
-### Estructura
+## Calidad
 
-- `manifest.json`: configuración de la extensión.
+Las reglas se prueban con Node sin dependencias externas. El flujo de GitHub Actions las ejecuta en cada cambio a `main` y en cada pull request:
+
+```sh
+node --test tests/rules.test.mjs
+```
+
+## Estructura
+
+- `manifest.json`: configuración y permisos mínimos de la extensión.
 - `src/rules.js`: motor de detección local.
-- `src/content.js`: inspección de URL y DOM.
-- `src/background.js`: puntuación por pestaña.
+- `src/content.js`: inspección de URL/DOM y barrera antes del envío.
+- `src/background.js`: puntuación efímera por pestaña.
 - `src/popup.*`: resultados para la persona usuaria.
+- `tests/rules.test.mjs`: pruebas de regresión.
+- `SECURITY.md`: modelo de amenazas y proceso seguro.
 
 El analizador de línea de comandos para mensajes sospechosos y los módulos anti-ransomware/malware pueden añadirse como fases posteriores del proyecto.
